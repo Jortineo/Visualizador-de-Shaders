@@ -24,6 +24,14 @@ class VentanaNativa:
     WS_EX_TRANSPARENT = 0x00000020   # <-- esta es la que hace que ignore el ratón
     LWA_ALPHA = 0x00000002
 
+    SM_CXSCREEN = 0
+    SM_CYSCREEN = 1
+
+    def obtener_resolucion_pantalla(self):
+        ancho = self._user32.GetSystemMetrics(self.SM_CXSCREEN)
+        alto = self._user32.GetSystemMetrics(self.SM_CYSCREEN)
+        return ancho, alto
+
     def __init__(self, hwnd):
         self._user32 = ctypes.WinDLL("user32", use_last_error=True)
         self._declarar_tipos()
@@ -47,6 +55,9 @@ class VentanaNativa:
             ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
             wintypes.UINT,
         ]
+
+        u.GetSystemMetrics.restype = ctypes.c_int
+        u.GetSystemMetrics.argtypes = [ctypes.c_int]
 
         u.GetCursorPos.restype = wintypes.BOOL
         u.GetCursorPos.argtypes = [ctypes.POINTER(wintypes.POINT)]
@@ -167,13 +178,13 @@ class VentanaNativa:
     SPI_GETWORKAREA = 0x0030
 
     def obtener_area_trabajo(self):
-        try:
-                ctypes.windll.shcore.SetProcessDpiAwareness(2) # 2 = PROCESS_PER_MONITOR_DPI_AWARE
-        except:
-            try:
-                ctypes.windll.user32.SetProcessDPIAware()
-            except:
-                pass
+        rect = wintypes.RECT()
+        self._user32.SystemParametersInfoW(
+            self.SPI_GETWORKAREA, 0, ctypes.byref(rect), 0
+        )
+        ancho = rect.right - rect.left
+        alto = rect.bottom - rect.top
+        return rect.left, rect.top, ancho, alto
 
     
 

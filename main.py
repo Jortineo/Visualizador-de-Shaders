@@ -10,6 +10,12 @@ Controles:
   Arrastrar-> mover la ventana
 """
 
+import ctypes
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+except Exception:
+    ctypes.windll.user32.SetProclessDPIAware()
+
 import sys
 import pygame
 import mss
@@ -26,8 +32,6 @@ from ui import SelectorShaders
 # mira en qué estado está y ejecuta un camino u otro en cada frame.
 MODO_RENDER = "render"
 MODO_MENU = "menu"
-
-estado_ventana = None
 
 def crear_ventana_pygame(ancho, alto):
     return pygame.display.set_mode(
@@ -56,18 +60,16 @@ def main():
     arrastrando = False
     offset_x = offset_y = 0
 
+    estado_ventana = None
+
     def aplicar_geometria(nuevo_ancho, nuevo_alto, x, y):
-        nonlocal ancho, alto, hwnd, render
+        nonlocal ancho, alto, hwnd
 
         crear_ventana_pygame(nuevo_ancho, nuevo_alto)
         hwnd = pygame.display.get_wm_info()['window']
         win_nativa.actualizar_hwnd(hwnd)
         pygame.display.set_window_position((x, y))
-        #render.redimensionar(nuevo_ancho, nuevo_alto)
-
-
-        ruta_activa = getattr(render, "ruta_shader_actual", RUTA_SHADER)
-        render = Renderizador(ruta_activa, nuevo_ancho, nuevo_alto)
+        render.redimensionar(nuevo_ancho, nuevo_alto)
 
         ancho, alto = nuevo_ancho, nuevo_alto
 
@@ -97,10 +99,13 @@ def main():
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_F11:
                     if estado_ventana is None:
-                        (ancho_actual, alto_actual), (x_actual, y_actual) = pygame.display.get_window_size(), pygame.display.get_window_position() #Ancho, Alto, X, Y
-                        pos_actual = ancho_actual, alto_actual, x_actual, y_actual
-                        an, al, x, y = win_nativa.obtener_area_trabajo()
+                        estado_ventana = (ancho, alto, *pygame.display.get_window_position())
+                        ancho_pantalla, alto_pantalla = win_nativa.obtener_resolucion_pantalla()
+                        aplicar_geometria(ancho_pantalla, alto_pantalla, 0, 0)
+                    else:
+                        an, al, x, y = estado_ventana
                         aplicar_geometria(an, al, x, y)
+                        estado_ventana = None
 
 
                 if evento.key == pygame.K_ESCAPE:
@@ -156,13 +161,18 @@ def main():
         
         # 🛡️ VALIDACIÓN DE SEGURIDAD: Evita pasar 0 o valores negativos a mss
         if ancho > 0 and alto > 0:
-            captura = sct.grab({"top": pos_y, "left": pos_x, "width": ancho, "height": alto})
-            render.renderizar(captura.rgb, pygame.time.get_ticks() / 1000.0)
-            
-            if modo == MODO_MENU:
-                render.dibujar_ui(selector.dibujar(ancho, alto))
-                
-            pygame.display.flip()
+            try:
+                captura = sct.grab({"top": pos_y, "left": pos_x, "width": ancho, "height": alto})
+            except mss.exception.ScreenShotError:
+                captura = None
+
+            if captura is not None:
+                render.renderizar(captura.rgb, pygame.time.get_ticks() / 1000.0)
+
+                if modo == MODO_MENU:
+                    render.dibujar_ui(selector.dibujar(ancho, alto))
+
+                pygame.display.flip()
             
         reloj.tick(FPS)
 
