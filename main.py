@@ -18,7 +18,8 @@ except Exception:
 
 import sys
 import pygame
-import mss
+import dxcam
+import time
 
 from config import (
     ANCHO_INICIAL, ALTO_INICIAL, ESCALA_ZOOM, ANCHO_MINIMO,
@@ -44,7 +45,17 @@ def crear_ventana_pygame(ancho, alto):
 
 def main():
     pygame.init()
-    sct = mss.mss()
+
+    # Lo genero con dxcam la ventana
+    camera = dxcam.create(
+    output_idx=0,
+    output_color="BGRA"
+    )
+
+    camera.start(
+        target_fps=60,
+        video_mode=True
+    )
 
     ancho, alto = ANCHO_INICIAL, ALTO_INICIAL
     crear_ventana_pygame(ancho, alto)
@@ -69,9 +80,20 @@ def main():
         hwnd = pygame.display.get_wm_info()['window']
         win_nativa.actualizar_hwnd(hwnd)
         pygame.display.set_window_position((x, y))
-        render.redimensionar(nuevo_ancho, nuevo_alto)
+
+        nonlocal render
+        render = Renderizador(RUTA_SHADER, nuevo_ancho, nuevo_alto)
 
         ancho, alto = nuevo_ancho, nuevo_alto
+
+    estadisticas = {
+    "captura": 0.0,
+    "render": 0.0,
+    "ui": 0.0,
+    "frames": 0,
+    }
+
+    ultimo_informe = time.perf_counter()
 
     while ejecutando:
         pygame.event.pump()
@@ -156,23 +178,74 @@ def main():
             global_x, global_y = win_nativa.obtener_mouse_absoluto()
             pygame.display.set_window_position((global_x - offset_x, global_y - offset_y))
 
-        # ---- Dibujado ----
-        pos_x, pos_y = pygame.display.get_window_position()
-        
-        # 🛡️ VALIDACIÓN DE SEGURIDAD: Evita pasar 0 o valores negativos a mss
-        if ancho > 0 and alto > 0:
-            try:
-                captura = sct.grab({"top": pos_y, "left": pos_x, "width": ancho, "height": alto})
-            except mss.exception.ScreenShotError:
-                captura = None
+        inicio = time.perf_counter()
 
-            if captura is not None:
-                render.renderizar(captura.rgb, pygame.time.get_ticks() / 1000.0)
+        inicio_captura = time.perf_counter()
 
-                if modo == MODO_MENU:
-                    render.dibujar_ui(selector.dibujar(ancho, alto))
+        frame_completo = camera.get_latest_frame()
 
-                pygame.display.flip()
+        if frame_completo is not None:
+            x_ventana, y_ventana = pygame.display.get_window_position()
+            
+            # Forzamos que las coordenadas no sean negativas si mueves la ventana fuera
+            y_in = max(0, y_ventana)
+            x_in = max(0, x_ventana)
+            
+            # Esto recorta el array de NumPy exactamente al tamaño (ancho, alto) de tu ventana
+            captura = frame_completo[y_in : y_in + alto, x_in : x_in + ancho].copy()
+        else:
+            # Si no hay frame nuevo, creamos un array vacío del tamaño exacto que espera el renderer
+            import numpy as np
+            captura = np.zeros((alto, ancho, 4), dtype=np.uint8)
+
+        fin_captura = time.perf_counter()
+
+        inicio_render = time.perf_counter()
+
+        render.renderizar(
+            captura,
+            pygame.time.get_ticks() / 1000.0
+        )
+
+        fin_render = time.perf_counter()
+
+        inicio_ui = time.perf_counter()
+
+        if modo == MODO_MENU:
+            render.dibujar_ui(selector.dibujar(ancho, alto))
+
+        fin_ui = time.perf_counter()
+
+        pygame.display.flip()
+
+        fin = time.perf_counter()
+
+        estadisticas["captura"] += fin_captura - inicio_captura
+        estadisticas["render"] += fin_render - inicio_render
+        estadisticas["ui"] += fin_ui - inicio_ui
+        estadisticas["frames"] += 1
+
+        ahora = time.perf_counter()
+
+        if ahora - ultimo_informe >= 1.0:
+            n = estadisticas["frames"]
+
+            if n > 0:
+                print(
+                    f"Captura: {estadisticas['captura'] / n * 1000:.2f} ms | "
+                    f"Render: {estadisticas['render'] / n * 1000:.2f} ms | "
+                    f"UI: {estadisticas['ui'] / n * 1000:.2f} ms | "
+                    f"Frames: {n}"
+                )
+
+            estadisticas = {
+                "captura": 0.0,
+                "render": 0.0,
+                "ui": 0.0,
+                "frames": 0,
+            }
+
+            ultimo_informe = ahora
             
         reloj.tick(FPS)
 

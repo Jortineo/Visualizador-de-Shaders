@@ -43,6 +43,8 @@ class Renderizador:
         self.ancho = ancho
         self.alto = alto
 
+        self.ctx.viewport = (0, 0, ancho, alto)
+
         self.vbo = self.ctx.buffer(array.array('f', VERTICES))
 
         self.prog = None
@@ -90,7 +92,6 @@ class Renderizador:
 
     def redimensionar(self, ancho, alto):
         self.ancho, self.alto = ancho, alto
-        self.ctx.viewport = (0, 0, ancho, alto)
         self.textura.release()
         self._crear_textura()
 
@@ -99,24 +100,34 @@ class Renderizador:
             self.textura_ui = None
 
     def _crear_textura(self):
-        self.textura = self.ctx.texture((self.ancho, self.alto), 3)
+        self.textura = self.ctx.texture((self.ancho, self.alto), 4)
 
     # ------------------------------------------------------------------
 
-    def renderizar(self, datos_captura_rgb, tiempo_segundos):
-        if 'u_resolution' in self.prog:
-            self.prog['u_resolution'].value = (self.ancho, self.alto)
+    def renderizar(self, captura, tiempo): #Renderizo 
+        if "u_resolution" in self.prog:
+            self.prog["u_resolution"].value = (
+                self.ancho,
+                self.alto
+            )
 
-        if 'u_time' in self.prog:
-            self.prog['u_time'].value = tiempo_segundos
+        if "u_time" in self.prog:
+            self.prog["u_time"].value = tiempo
 
-        self.textura.write(datos_captura_rgb)
-        self.textura.use(location=0)
+        alto_real = captura.shape[0]
+        ancho_real = captura.shape[1]
 
-        if 'u_screen_texture' in self.prog:
-            self.prog['u_screen_texture'].value = 0
+        if (ancho_real, alto_real) != self.textura.size:
+            self.redimensionar(ancho_real, alto_real)
 
-        self.ctx.clear(0.0, 0.0, 0.0, 1.0)
+        self.textura.write(captura.tobytes())
+
+        self.textura.use(0)
+
+        if "u_screen_texture" in self.prog:
+            self.prog["u_screen_texture"].value = 0
+
+        self.ctx.clear()
         self.vao.render()
 
     def dibujar_ui(self, superficie_pygame):
@@ -128,14 +139,14 @@ class Renderizador:
         pygame cuenta las filas desde arriba y OpenGL desde abajo.
         """
         ancho, alto = superficie_pygame.get_size()
-        datos = pygame.image.tostring(superficie_pygame, "RGBA", True)
+        datos = pygame.image.tobytes(superficie_pygame, "RGBA", True)
 
         if self.textura_ui is None or self.textura_ui.size != (ancho, alto):
             if self.textura_ui is not None:
                 self.textura_ui.release()
             self.textura_ui = self.ctx.texture((ancho, alto), 4)
 
-        self.textura_ui.write(datos)
+        self.textura_ui.write(datos.tobytes())
         self.textura_ui.use(location=0)
         self.prog_ui['u_ui'].value = 0
 

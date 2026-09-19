@@ -3,9 +3,9 @@ Constantes de configuración del proyecto.
 """
  
 ANCHO_INICIAL = 800
-ALTO_INICIAL = 400
+ALTO_INICIAL = 300
 ESCALA_ZOOM = 20        # cuánto crece/decrece la ventana con la rueda
-ANCHO_MINIMO = 400
+ANCHO_MINIMO = 300
  
 CARPETA_SHADERS = "Shaders"
 RUTA_SHADER = "Shaders/Kuwahara.glsl"
