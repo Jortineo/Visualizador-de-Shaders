@@ -105,8 +105,11 @@ class Renderizador:
     # ------------------------------------------------------------------
 
     def renderizar(self, captura, tiempo): #Renderizo 
+        if self.prog == None: #Blindo
+            return
+
         if "u_resolution" in self.prog:
-            self.prog["u_resolution"].value = (
+            self.prog["u_resolution"] = (
                 self.ancho,
                 self.alto
             )
@@ -146,9 +149,9 @@ class Renderizador:
                 self.textura_ui.release()
             self.textura_ui = self.ctx.texture((ancho, alto), 4)
 
-        self.textura_ui.write(datos.tobytes())
+        self.textura_ui.write(datos)
         self.textura_ui.use(location=0)
-        self.prog_ui['u_ui'].value = 0
+        self.prog_ui['u_ui'] = 0
 
         # Mezcla alfa: lo transparente del panel deja ver el shader de debajo
         self.ctx.enable(moderngl.BLEND)

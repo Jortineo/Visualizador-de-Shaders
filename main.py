@@ -74,17 +74,25 @@ def main():
     estado_ventana = None
 
     def aplicar_geometria(nuevo_ancho, nuevo_alto, x, y):
-        nonlocal ancho, alto, hwnd
+        nonlocal ancho, alto, hwnd, render, camera
+
+        try:
+            camera.stop()
+        except Exception:
+            pass
 
         crear_ventana_pygame(nuevo_ancho, nuevo_alto)
         hwnd = pygame.display.get_wm_info()['window']
         win_nativa.actualizar_hwnd(hwnd)
         pygame.display.set_window_position((x, y))
 
-        nonlocal render
         render = Renderizador(RUTA_SHADER, nuevo_ancho, nuevo_alto)
 
         ancho, alto = nuevo_ancho, nuevo_alto
+
+        # Vuelvo a crear la cámara
+        camera = dxcam.create(output_idx=0, output_color="BGRA")
+        camera.start(target_fps=60, video_mode=True)
 
     estadisticas = {
     "captura": 0.0,
@@ -98,7 +106,7 @@ def main():
     while ejecutando:
         pygame.event.pump()
 
-        for evento in pygame.event.get():
+        for evento in pygame.event.get(): #Inputs
             if evento.type == pygame.QUIT:
                 ejecutando = False
                 continue
@@ -190,9 +198,12 @@ def main():
             # Forzamos que las coordenadas no sean negativas si mueves la ventana fuera
             y_in = max(0, y_ventana)
             x_in = max(0, x_ventana)
+
+            alto_max = min(y_in + alto, frame_completo.shape[0])
+            ancho_max = min(x_in + ancho, frame_completo.shape[1])
             
             # Esto recorta el array de NumPy exactamente al tamaño (ancho, alto) de tu ventana
-            captura = frame_completo[y_in : y_in + alto, x_in : x_in + ancho].copy()
+            captura = frame_completo[y_in : alto_max, x_in : ancho_max].copy()
         else:
             # Si no hay frame nuevo, creamos un array vacío del tamaño exacto que espera el renderer
             import numpy as np
