@@ -11,7 +11,15 @@ from ctypes import wintypes
 
 from config import WDA_EXCLUDEFROMCAPTURE
 
-class VentanaNativa:
+class WINDOWCOMPOSITIONATTRIBDATA(ctypes.Structure):
+            _fields_ = [
+                ("Attrib", ctypes.c_int),
+                ("pvData", ctypes.c_void_p),
+                ("cbData", ctypes.c_size_t),
+            ]
+
+class VentanaNativa():
+
     # --- Constantes de SetWindowPos ---
     SWP_NOSIZE = 0x0001
     SWP_NOMOVE = 0x0002
@@ -21,6 +29,7 @@ class VentanaNativa:
     # --- Constantes de estilos extendidos ---
     GWL_EXSTYLE = -20
     WS_EX_LAYERED = 0x00080000
+    WS_EX_NOACTIVATE = 0x08000000
     WS_EX_TRANSPARENT = 0x00000020   # <-- esta es la que hace que ignore el ratón
     LWA_ALPHA = 0x00000002
 
@@ -101,10 +110,13 @@ class VentanaNativa:
         if self.click_through:
             self.establecer_click_through(True)
 
+        self.excluir_de_duplicacion()
+
     def aplicar_display_affinity(self):
         self._user32.SetWindowDisplayAffinity(
             wintypes.HWND(self.hwnd), WDA_EXCLUDEFROMCAPTURE
         )
+        self.excluir_de_duplicacion()
 
     # ------------------------------------------------------------------
     # Siempre al frente
@@ -155,9 +167,10 @@ class VentanaNativa:
         estilo = self._get_long(hwnd, self.GWL_EXSTYLE)
 
         if activar:
-            estilo |= self.WS_EX_LAYERED | self.WS_EX_TRANSPARENT
+            estilo |= self.WS_EX_LAYERED | self.WS_EX_TRANSPARENT | self.WS_EX_NOACTIVATE
         else:
-            estilo &= ~self.WS_EX_TRANSPARENT   # quitamos solo TRANSPARENT
+            estilo &= ~self.WS_EX_TRANSPARENT
+            estilo &= ~self.WS_EX_NOACTIVATE   # quitamos solo TRANSPARENT
 
         self._set_long(hwnd, self.GWL_EXSTYLE, estilo)
 
@@ -175,6 +188,17 @@ class VentanaNativa:
         self._user32.GetCursorPos(ctypes.byref(pt))
         return pt.x, pt.y
 
+    WCA_EXCLUDED_FROM_DDA = 24
+        
+    def excluir_de_duplicacion(self):
+        valor = ctypes.c_int(1)  # BOOL: TRUE
+        datos = WINDOWCOMPOSITIONATTRIBDATA(
+            Attrib=self.WCA_EXCLUDED_FROM_DDA,
+            pvData=ctypes.cast(ctypes.byref(valor), ctypes.c_void_p),
+            cbData=ctypes.sizeof(valor),
+        )
+        self._user32.SetWindowCompositionAttribute(wintypes.HWND(self.hwnd), ctypes.byref(datos))
+
     SPI_GETWORKAREA = 0x0030
 
     def obtener_area_trabajo(self):
@@ -182,23 +206,6 @@ class VentanaNativa:
         self._user32.SystemParametersInfoW(
             self.SPI_GETWORKAREA, 0, ctypes.byref(rect), 0
         )
-        ancho = rect.right - rect.left
-        alto = rect.bottom - rect.top
-        return rect.left, rect.top, ancho, alto
-
-    
-
-        self._user32 = ctypes.windll.user32
-
-        # DEFINE ESTO PARA QUE WINDOWS ENTIENDA LOS PARÁMETROS:
-        self._user32.SystemParametersInfoW.argtypes = [wintypes.UINT, wintypes.UINT, ctypes.c_void_p, wintypes.UINT]
-        self._user32.SystemParametersInfoW.restype = wintypes.BOOL
-
-        rect = wintypes.RECT()
-        self._user32.SystemParametersInfoW(
-            self.SPI_GETWORKAREA, 0, ctypes.byref(rect), 0
-        )
-        
         ancho = rect.right - rect.left
         alto = rect.bottom - rect.top
         return rect.left, rect.top, ancho, alto

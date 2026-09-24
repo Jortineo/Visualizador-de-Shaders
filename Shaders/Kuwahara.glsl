@@ -12,25 +12,31 @@ const int RADIUS = 5;
 const float Q_PARAMETER = 8.0; 
 const float HARDNESS = 1.0;    
 
+// OPTIMIZACIÓN: Factor de reescalado para rendimiento. 
+// 1.0 = Resolución nativa. 2.0 = Divide la resolución de cálculo por 2 (4x más rápido).
+const float DOWNSCALE_FACTOR = 2.0; 
+
 float getLuminance(vec3 color) {
     return dot(color, vec3(0.299, 0.587, 0.114));
 }
 
 void main() {
     // CORRECCIÓN DE INVERSIÓN VERTICAL:
-    // Volteamos el eje Y de la coordenada de lectura para corregir el desfase Pygame vs OpenGL.
     vec2 flippedTexcoord = vec2(v_texcoord.x, 1.0 - v_texcoord.y);
 
     // Detecta el tamaño del búfer de captura automáticamente
     ivec2 texSize = textureSize(u_screen_texture, 0);
     vec2 invTexSize = 1.0 / vec2(texSize);
     
-    // 1. Tensor de estructura simplificado (Gradientes locales utilizando la coordenada corregida)
+    // Aplicamos el factor de escala al tamaño de los pasos (texels)
+    vec2 stepSize = invTexSize * DOWNSCALE_FACTOR;
+    
+    // 1. Tensor de estructura simplificado (usando la resolución reescalada)
     float c  = getLuminance(texture(u_screen_texture, flippedTexcoord).rgb);
-    float t  = getLuminance(texture(u_screen_texture, flippedTexcoord + vec2(0.0, invTexSize.y)).rgb);
-    float b  = getLuminance(texture(u_screen_texture, flippedTexcoord - vec2(0.0, invTexSize.y)).rgb);
-    float r  = getLuminance(texture(u_screen_texture, flippedTexcoord + vec2(invTexSize.x, 0.0)).rgb);
-    float l  = getLuminance(texture(u_screen_texture, flippedTexcoord - vec2(invTexSize.x, 0.0)).rgb);
+    float t  = getLuminance(texture(u_screen_texture, flippedTexcoord + vec2(0.0, stepSize.y)).rgb);
+    float b  = getLuminance(texture(u_screen_texture, flippedTexcoord - vec2(0.0, stepSize.y)).rgb);
+    float r  = getLuminance(texture(u_screen_texture, flippedTexcoord + vec2(stepSize.x, 0.0)).rgb);
+    float l  = getLuminance(texture(u_screen_texture, flippedTexcoord - vec2(stepSize.x, 0.0)).rgb);
     
     float gX = (r - l) / 2.0;
     float gY = (t - b) / 2.0;
@@ -47,17 +53,17 @@ void main() {
     vec3 s[4] = vec3[](vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0)); // Varianzas
     float n[4] = float[](0.0, 0.0, 0.0, 0.0);                      // Contador de muestras
 
-    // 2. Muestreo adaptativo rotando según la orientación del borde
+    // 2. Muestreo adaptativo con saltos grandes (Downscaled Sampling)
     for (int j = -RADIUS; j <= RADIUS; ++j) {
         for (int i = -RADIUS; i <= RADIUS; ++i) {
-            // Rotar coordenadas para seguir la forma geométrica
+            // Rotar coordenadas y multiplicar por el tamaño del paso optimizado
             vec2 v = R * vec2(float(i), float(j));
-            vec2 offset = v * invTexSize;
+            vec2 offset = v * stepSize;
             
-            // Muestreamos usando la coordenada base ya volteada
+            // Muestreamos usando la textura original pero espaciando los índices
             vec3 color = texture(u_screen_texture, flippedTexcoord + offset).rgb;
             
-            // Clasificar en cuál de los 4 sectores cae tras la rotación
+            // Clasificar cuadrante
             int k = 0;
             if (i >= 0 && j >= 0) k = 0;
             else if (i <= 0 && j >= 0) k = 1;
@@ -87,6 +93,8 @@ void main() {
         sumWeights += w;
     }
 
-    // Retornar color final derecho y estilizado
-    f_color = vec4(finalColor.rgb / sumWeights, 1.0);
+    vec3 rgbResult = finalColor.rgb / sumWeights;
+
+    // Retornar color final invertido a formato BGRA (B y R intercambiados)
+    f_color = vec4(rgbResult.b, rgbResult.g, rgbResult.r, 1.0);
 }
