@@ -1,6 +1,3 @@
-"""
-Constantes de configuración del proyecto.
-"""
 import os
 
 

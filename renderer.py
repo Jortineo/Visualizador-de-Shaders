@@ -1,9 +1,3 @@
-"""
-Todo lo relacionado con moderngl vive aquí: compilar el shader, la
-geometría, la textura de captura, el dibujado, y ahora también pegar
-la UI por encima.
-"""
-
 import array
 import pygame
 import moderngl
@@ -45,11 +39,7 @@ class Renderizador:
     # ------------------------------------------------------------------
 
     def cambiar_shader(self, ruta_fragment_shader):
-        """
-        Compila (o recompila) el programa desde un .glsl distinto.
-        Si el shader tiene un error de sintaxis, avisa y NO rompe el
-        programa: se queda con el que ya estaba funcionando.
-        """
+        #Compila or recompila el programa
         try:
             with open(ruta_fragment_shader, "r") as archivo:
                 codigo = archivo.read()

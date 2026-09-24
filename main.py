@@ -1,15 +1,3 @@
-"""
-Punto de entrada. Orquesta VentanaNativa, Renderizador y la UI.
-
-Controles:
-  L        -> bloquear/desbloquear "siempre al frente"
-  T        -> activar/desactivar click-through (la ventana ignora el ratón)
-  TAB      -> abrir/cerrar el selector de shaders
-  ESC      -> cerrar el selector, o salir si ya está cerrado
-  Rueda    -> redimensionar
-  Arrastrar-> mover la ventana
-"""
-
 import ctypes
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2)

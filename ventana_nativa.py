@@ -1,11 +1,3 @@
-"""
-Todo lo relacionado con la API nativa de Windows (ctypes) vive aquí:
-- Poner la ventana "siempre al frente" (topmost).
-- Hacer la ventana "click-through" (que ignore el ratón).
-- Ocultar la ventana de capturas de pantalla/grabaciones.
-- Leer la posición absoluta del ratón (para poder arrastrar la ventana).
-"""
-
 import ctypes
 from ctypes import wintypes
 
@@ -51,11 +43,7 @@ class VentanaNativa():
         self.aplicar_display_affinity()
 
     def _declarar_tipos(self):
-        """
-        Declara explícitamente los tipos de cada función de user32.dll.
-        Sin esto, en Python de 64 bits los HWND especiales como
-        HWND_TOPMOST (-1) se corrompen y las llamadas fallan en silencio.
-        """
+        #Declaro todos los tecnicismos
         u = self._user32
 
         u.SetWindowPos.restype = wintypes.BOOL
@@ -99,10 +87,7 @@ class VentanaNativa():
     # ------------------------------------------------------------------
 
     def actualizar_hwnd(self, nuevo_hwnd):
-        """
-        Llama a esto cada vez que pygame.display.set_mode() te dé un HWND
-        nuevo (al redimensionar). Reaplica todos los estados activos.
-        """
+        #Cada vez que tenga una ventana nueva
         self.hwnd = nuevo_hwnd
         self.aplicar_display_affinity()
         if self.bloqueada:
