@@ -14,3 +14,5 @@ Actualizaciones:
     - Resuelto un problema que gastaba mucha CPU para cambiar el color de la pantalla de BGRA a RGBA. Ahora simplemente no ocurre ese cambio. BGRA es el formato nativo de Dxcam.
     - Mejorado el rendimiento de la CPU al usar Dxcam en lugar de Mss como hacía previamente.
     - Creada la GUI
+
+Licencia: Este proyecto se publica de forma abierta para su visualización y aprendizaje como un proyecto personal. Actualmente no cuenta con una licencia de uso libre, por lo que todos los derechos están reservados. No está permitida la copia, redistribución ni explotación comercial del código sin mi autorización. Si el proyecto crece, ¡se evaluará abrirlo a la comunidad bajo una licencia formal!
