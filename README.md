@@ -8,3 +8,9 @@ A añadir en el futuro:
 - Optimizar el rendimiento lo máximo posible.
 - La posibilidad de editar los shaders en la interfaz y verlos en tiempo real sobre una imagen.
 
+Actualizaciones:
+
+  versión 0.1(Lanzamiento):
+    - Resuelto un problema que gastaba mucha CPU para cambiar el color de la pantalla de BGRA a RGBA. Ahora simplemente no ocurre ese cambio. BGRA es el formato nativo de Dxcam.
+    - Mejorado el rendimiento de la CPU al usar Dxcam en lugar de Mss como hacía previamente.
+    - Creada la GUI
