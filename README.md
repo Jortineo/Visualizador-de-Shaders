@@ -1,6 +1,6 @@
 Un visualizador de shaders en tiempo real para ponerle filtros a la pantalla.
 
-Utiliza Dxcam para capturar la pantalla mediante la CPU, y la envía a un código que utiliza ModernGl para aplicarle el shader seleccionado. Además cuenta con una GUI hecha con PySide6.
+Utiliza Dxcam para capturar la pantalla mediante la CPU, y la envía con Ctypes a un código que utiliza ModernGl para aplicarle el shader seleccionado. Además cuenta con una GUI hecha con PySide6.
 
 Cuenta con una carpeta de shaders por defecto con varios efectos. Nota: Los shaders utilizan los colores BGRA.
 
