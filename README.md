@@ -5,6 +5,7 @@ Utiliza Dxcam para capturar la pantalla mediante la CPU, y la envía con Ctypes 
 Cuenta con una carpeta de shaders por defecto con varios efectos. Nota: Los shaders utilizan los colores BGRA.
 
 A añadir en el futuro:
+- Pestaña de postprocesado con módulos para seleccionar diferentes efectos (Corrección de color, filtrado anisotrópico...) [Hacer que los efectos seleccionados se ejecuten de arriba a abajo para poder controlarlo al máximo]
 - Optimizar el rendimiento lo máximo posible.
 - La posibilidad de editar los shaders en la interfaz y verlos en tiempo real sobre una imagen.
 
